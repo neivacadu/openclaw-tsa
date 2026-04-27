@@ -1,0 +1,18 @@
+{
+  "id": "tsa-notify-stop",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "telegramChatId": {
+        "type": "string",
+        "description": "Default Telegram chat id for stop notifications. Falls back to env TELEGRAM_ALERT_CHAT_ID then 601478643."
+      },
+      "telegramTimeoutMs": {
+        "type": "number",
+        "default": 8000,
+        "description": "Hard timeout for the Telegram POST. Matches the curl --max-time 8 used by notify-stop.sh."
+      }
+    }
+  }
+}
