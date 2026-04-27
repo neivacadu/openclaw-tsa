@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-steer-busy-mode",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TSA ADAPT of Hermes /steer busy_input_mode (PR #16279, commit 635253b9). Lets a user inject a steer message while the top-level agent is busy executing a tool, instead of being forced into the OpenClaw queue. Falls back to queue when no eligible run is detected.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}
