@@ -46,6 +46,7 @@ type SharedServiceEnvironmentFields = {
 };
 
 const SERVICE_PROXY_ENV_KEYS = [
+  "OPENCLAW_PROXY_URL",
   "HTTP_PROXY",
   "HTTPS_PROXY",
   "NO_PROXY",

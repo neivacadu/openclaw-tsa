@@ -8,6 +8,8 @@ import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { normalizeEnv } from "../infra/env.js";
 import { formatUncaughtError } from "../infra/errors.js";
 import { isMainModule } from "../infra/is-main.js";
+import { startProxy, stopProxy } from "../infra/net/proxy/proxy-lifecycle.js";
+import type { ProxyHandle } from "../infra/net/proxy/proxy-lifecycle.js";
 import { ensureGlobalUndiciEnvProxyDispatcher } from "../infra/net/undici-global-dispatcher.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
 import { assertSupportedRuntime } from "../infra/runtime-guard.js";
@@ -26,6 +28,7 @@ import {
   normalizeOptionalString,
 } from "../shared/string-coerce.js";
 import { resolveCliArgvInvocation } from "./argv-invocation.js";
+import { resolveCliNetworkProxyPolicy } from "./command-path-policy.js";
 import {
   shouldRegisterPrimaryCommandOnly,
   shouldSkipPluginCommandRegistration,
@@ -99,6 +102,15 @@ export function shouldStartCrestodianForModernOnboard(argv: string[]): boolean {
     argv.includes("--modern") &&
     !invocation.hasHelpOrVersion
   );
+}
+
+export function shouldStartProxyForCli(argv: string[]): boolean {
+  const invocation = resolveCliArgvInvocation(argv);
+  const [primary] = invocation.commandPath;
+  if (invocation.hasHelpOrVersion || !primary) {
+    return false;
+  }
+  return resolveCliNetworkProxyPolicy(argv) === "default";
 }
 
 export function resolveMissingPluginCommandMessage(
@@ -222,6 +234,52 @@ export async function runCli(argv: string[] = process.argv) {
 
   // Enforce the minimum supported runtime before doing any work.
   assertSupportedRuntime();
+
+  // Activate operator-managed proxy routing for network-capable commands.
+  // Local Gateway/control-plane commands keep direct loopback access while
+  // runtime, provider, plugin, update, and unknown plugin commands route egress.
+  // The handle is captured so we can restore process proxy state on exit.
+  let proxyHandle: ProxyHandle | null = null;
+  const stopStartedProxy = async () => {
+    const handle = proxyHandle;
+    proxyHandle = null;
+    if (handle) {
+      await stopProxy(handle);
+    }
+  };
+  const killStartedProxy = () => {
+    const handle = proxyHandle;
+    proxyHandle = null;
+    handle?.kill("SIGTERM");
+  };
+  if (shouldStartProxyForCli(normalizedArgv)) {
+    const { loadConfig } = await import("../config/io.js");
+    const config = loadConfig();
+    proxyHandle = await startProxy(config?.proxy ?? undefined);
+  }
+  // Graceful shutdown - restore proxy routing when openclaw exits via any signal.
+  let onSigterm: (() => void) | null = null;
+  let onSigint: (() => void) | null = null;
+  let onExit: (() => void) | null = null;
+  if (proxyHandle) {
+    const shutdown = (exitCode: number) => {
+      if (onSigterm) {
+        process.off("SIGTERM", onSigterm);
+      }
+      if (onSigint) {
+        process.off("SIGINT", onSigint);
+      }
+      void stopStartedProxy().finally(() => {
+        process.exit(exitCode);
+      });
+    };
+    onSigterm = () => shutdown(143);
+    onSigint = () => shutdown(130);
+    onExit = () => killStartedProxy();
+    process.once("SIGTERM", onSigterm);
+    process.once("SIGINT", onSigint);
+    process.once("exit", onExit);
+  }
 
   try {
     if (shouldUseRootHelpFastPath(normalizedArgv)) {
@@ -402,6 +460,16 @@ export async function runCli(argv: string[] = process.argv) {
       stopStartupProgress();
     }
   } finally {
+    if (onSigterm) {
+      process.off("SIGTERM", onSigterm);
+    }
+    if (onSigint) {
+      process.off("SIGINT", onSigint);
+    }
+    if (onExit) {
+      process.off("exit", onExit);
+    }
+    await stopStartedProxy();
     await closeCliMemoryManagers();
   }
 }

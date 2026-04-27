@@ -20,6 +20,7 @@ import {
 } from "./zod-schema.core.js";
 import { HookMappingSchema, HooksGmailSchema, InternalHooksSchema } from "./zod-schema.hooks.js";
 import { ChannelsSchema } from "./zod-schema.providers.js";
+import { ProxyConfigSchema } from "./zod-schema.proxy.js";
 import { sensitive } from "./zod-schema.sensitive.js";
 import {
   CommandsSchema,
@@ -1017,6 +1018,7 @@ export const OpenClawSchema = z
           .strict(),
       )
       .optional(),
+    proxy: ProxyConfigSchema,
   })
   .strict()
   .superRefine((cfg, ctx) => {

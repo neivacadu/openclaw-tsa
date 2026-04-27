@@ -23722,6 +23722,19 @@ export const GENERATED_BASE_CONFIG_SCHEMA: BaseConfigSchemaResponse = {
           additionalProperties: false,
         },
       },
+      proxy: {
+        type: "object",
+        properties: {
+          enabled: {
+            type: "boolean",
+          },
+          proxyUrl: {
+            type: "string",
+            format: "uri",
+          },
+        },
+        additionalProperties: false,
+      },
     },
     required: ["commands"],
     additionalProperties: false,
@@ -28591,6 +28604,10 @@ export const GENERATED_BASE_CONFIG_SCHEMA: BaseConfigSchemaResponse = {
     "skills.entries.*.apiKey": {
       sensitive: true,
       tags: ["security", "auth"],
+    },
+    "proxy.proxyUrl": {
+      sensitive: true,
+      tags: ["security"],
     },
     "models.providers.*.models[].baseUrl": {
       tags: ["models", "url-secret"],
