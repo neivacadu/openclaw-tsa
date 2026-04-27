@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-transform-tool-result",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TSA tool-result middleware: redacts PII, blocks injection patterns, truncates oversized outputs before the agent sees them.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}

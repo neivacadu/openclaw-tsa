@@ -1,0 +1,11 @@
+{
+  "id": "tsa-transform-tool-result",
+  "contracts": {
+    "agentToolResultMiddleware": ["pi", "codex"]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
