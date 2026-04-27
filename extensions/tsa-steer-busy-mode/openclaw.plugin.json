@@ -1,0 +1,24 @@
+{
+  "id": "tsa-steer-busy-mode",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Master switch for the TSA steer busy-mode adapter."
+      },
+      "commandName": {
+        "type": "string",
+        "default": "steer",
+        "description": "Name of the slash command that triggers a steer (without leading /)."
+      },
+      "detectInlineSteer": {
+        "type": "boolean",
+        "default": false,
+        "description": "If true, every message_received during a busy run is auto-routed to steer instead of queue. If false, only the explicit /steer command triggers steer."
+      }
+    }
+  }
+}
