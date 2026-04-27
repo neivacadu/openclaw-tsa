@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-focos-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TSA bridge: invokes the FOCOS routing engine (/usr/local/bin/focos) before the agent reasons, and injects routing hints (action/target/confidence/reasoning) into the system prompt via prependSystemContext. Fail-safe pass-through if subprocess errors or times out.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}

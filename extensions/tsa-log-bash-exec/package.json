@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-log-bash-exec",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TSA Bash exec logger (S3) — after_tool_call native TS migration of log-bash-exec.sh, with duration_ms + SLO breach tag.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}
