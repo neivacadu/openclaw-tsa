@@ -1,0 +1,8 @@
+{
+  "id": "tsa-pre-tool-call-bridge",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

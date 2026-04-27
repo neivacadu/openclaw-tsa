@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-pre-tool-call-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TSA bridge: invokes legacy bash security hooks (block-destructive.sh, log-edit-intent.sh) from native before_tool_call hook. Defense-in-depth alongside tsa-constitution.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}
