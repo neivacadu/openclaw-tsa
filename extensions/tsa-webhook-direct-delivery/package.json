@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-webhook-direct-delivery",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TSA webhook direct-delivery zero-LLM (Hermes v0.11 pattern). Subscribes to OpenClaw diagnostic events and dispatches them straight to Telegram/HTTP webhooks without invoking the agent loop. Saves tokens by replacing bash hook curl spam (notify-stop.sh, integrity-check.sh) with config-driven, throttled, fan-out delivery.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}
