@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-block-destructive",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TSA hardline destructive command blocker (S1) — native TS migration of block-destructive.sh with 20 patterns.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}
