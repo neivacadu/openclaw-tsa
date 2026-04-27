@@ -1,0 +1,8 @@
+{
+  "id": "tsa-block-destructive",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
