@@ -1,0 +1,59 @@
+{
+  "id": "tsa-webhook-direct-delivery",
+  "name": "TSA Webhook Direct-Delivery",
+  "description": "Zero-LLM diagnostic event delivery to Telegram/HTTP webhooks (Hermes v0.11 pattern).",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "rules": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "match": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Diagnostic event type to match. Exact (e.g. 'session.stuck'), wildcard prefix ('webhook.*'), or '*' for all."
+            },
+            "throttle_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "description": "Minimum interval between deliveries for the same rule. 0 = no throttling."
+            },
+            "targets": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["telegram", "http"]
+                  },
+                  "chat_id": { "type": "string", "minLength": 1 },
+                  "url": { "type": "string", "minLength": 1 },
+                  "method": { "type": "string", "enum": ["POST", "PUT", "PATCH"] },
+                  "headers": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" }
+                  },
+                  "template": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Mustache-lite template. {{field}} interpolates event[field]; {{type}} is the event type."
+                  }
+                },
+                "required": ["type", "template"]
+              }
+            }
+          },
+          "required": ["match", "targets"]
+        }
+      }
+    }
+  }
+}
