@@ -1,0 +1,8 @@
+{
+  "id": "tsa-log-edit-intent",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
