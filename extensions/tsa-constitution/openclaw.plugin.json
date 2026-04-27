@@ -1,0 +1,8 @@
+{
+  "id": "tsa-constitution",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
