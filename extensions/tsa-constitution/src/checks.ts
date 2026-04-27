@@ -1,7 +1,7 @@
 import { loadConstitution } from "./rules.js";
 
 export type ConstitutionViolation = {
-  rule: 4 | 7 | 11 | 14;
+  rule: 1 | 4 | 7 | 11 | 14;
   reason: string;
 };
 
@@ -9,6 +9,32 @@ export type ToolCallSnapshot = {
   toolName: string;
   params: Record<string, unknown>;
 };
+
+// Rule 1 — OAuth-only · NUNCA API key.
+// Allowed OAuth tokens are matched FIRST and short-circuit the API-key scan
+// to avoid false positives on `sk-ant-oat01-...` (Claude CLI OAuth) — the
+// generic `sk-ant-...` pattern would otherwise match the OAuth prefix.
+const ALLOWED_OAUTH_PATTERNS = [
+  /sk-ant-oat01-[a-zA-Z0-9_-]+/, // Anthropic OAuth (Claude CLI)
+];
+
+const FORBIDDEN_API_KEY_PATTERNS = [
+  /sk-ant-api[0-9]{2}-[a-zA-Z0-9_-]{20,}/, // Anthropic genuine API key (sk-ant-apiNN-...)
+  /sk-ds-[a-zA-Z0-9]{20,}/, // DeepSeek
+  /sk-or-(?:v[0-9]+-)?[a-zA-Z0-9]{20,}/, // OpenRouter (sk-or-v1-... and legacy)
+  /sk-proj-[a-zA-Z0-9_-]{20,}/, // OpenAI project keys
+  /sk-[a-zA-Z0-9]{40,}/, // OpenAI / generic 48-char key (last to lose ties)
+  /AIza[0-9A-Za-z_-]{35}/, // Google / Gemini API key
+];
+
+const FORBIDDEN_ENV_VARS = [
+  "ANTHROPIC_API_KEY",
+  "OPENAI_API_KEY",
+  "DEEPSEEK_API_KEY",
+  "OPENROUTER_API_KEY",
+  "GOOGLE_API_KEY",
+  "GEMINI_API_KEY",
+];
 
 const SENSITIVE_PATH_PATTERNS = [
   /\.ssh\/id_/i,
@@ -53,7 +79,7 @@ const DESTRUCTIVE_BASH_PATTERNS = [
 const DESTRUCTIVE_OVERRIDE = /--allow-destructive\b/;
 
 /**
- * Run all four Constitution checks against a tool call. Returns the first
+ * Run all Constitution checks against a tool call. Returns the first
  * blocking violation, or `null` if the call is allowed.
  *
  * Rule 14 is intentionally non-blocking (gentle warning only) — kept in the
@@ -63,6 +89,11 @@ export async function checkConstitution(
   call: ToolCallSnapshot,
 ): Promise<ConstitutionViolation | null> {
   const payload = serializeParams(call.params);
+
+  // Rule 1 — OAuth-only · NUNCA API key. Runs FIRST so genuine API keys are
+  // blocked even if they would also match a sensitive-path pattern below.
+  const rule1 = checkRule1(call, payload);
+  if (rule1) return rule1;
 
   // Rule 4 — credentials/auth profile: any tool input that exposes a sensitive
   // secret path or OAuth token gets blocked, no matter the tool.
@@ -106,6 +137,59 @@ export async function checkConstitution(
   // we keep a single source of truth, but never block. (Future work: surface
   // a warning back to the agent via a logger or status channel.)
   void loadConstitution();
+
+  return null;
+}
+
+/**
+ * Rule 1 — OAuth-only · NUNCA API key.
+ *
+ * Inspects the tool call for forbidden provider API keys (Anthropic genuine,
+ * OpenAI, DeepSeek, OpenRouter, Google/Gemini) and forbidden env vars. Allows
+ * Claude CLI OAuth tokens (`sk-ant-oat01-…`) explicitly so the only legal
+ * Anthropic credential keeps working.
+ *
+ * Exported for in-process smoke tests. Pass the pre-serialized payload when
+ * available to avoid double-stringifying.
+ */
+export function checkRule1(call: ToolCallSnapshot, payload?: string): ConstitutionViolation | null {
+  const params = call.params ?? {};
+  const env = (params as { env?: Record<string, unknown> }).env ?? {};
+  const command = extractCommandString(params) ?? "";
+  const inputStr = payload ?? serializeParams(params);
+
+  // 1a — env var name allow/deny: cheap exact-match scan first.
+  for (const envVar of FORBIDDEN_ENV_VARS) {
+    if (Object.prototype.hasOwnProperty.call(env, envVar)) {
+      return {
+        rule: 1,
+        reason: `env var ${envVar} detected. Use OAuth Claude CLI instead.`,
+      };
+    }
+    // Also catch `export FOO=...` / `FOO=... cmd` baked into the bash command.
+    if (command && new RegExp(`\\b${envVar}\\s*=`).test(command)) {
+      return {
+        rule: 1,
+        reason: `env var ${envVar} set inline in command. Use OAuth Claude CLI instead.`,
+      };
+    }
+  }
+
+  // 1b — token shape match. Strip allowed OAuth substrings before scanning so
+  // `sk-ant-oat01-…` cannot be mistaken for a generic `sk-…` API key.
+  let scanStr = inputStr;
+  for (const pattern of ALLOWED_OAUTH_PATTERNS) {
+    scanStr = scanStr.replace(new RegExp(pattern.source, "g"), "[oauth]");
+  }
+
+  for (const pattern of FORBIDDEN_API_KEY_PATTERNS) {
+    if (pattern.test(scanStr)) {
+      return {
+        rule: 1,
+        reason: `API key detected (matched ${pattern.source}). Use OAuth Claude CLI instead.`,
+      };
+    }
+  }
 
   return null;
 }
