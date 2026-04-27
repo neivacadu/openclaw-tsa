@@ -1,0 +1,8 @@
+{
+  "id": "tsa-channel-skill-bindings",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

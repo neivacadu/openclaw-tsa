@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-channel-skill-bindings",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TSA channel -> skill bindings: resolve auto-skill list per inbound channel (telegram/discord chat, group, guild) and inject as system context. Port of Hermes 8fb861ea pattern (was Slack-only) to OpenClaw fork.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}
