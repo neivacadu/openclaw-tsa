@@ -1,0 +1,8 @@
+{
+  "id": "tsa-log-bash-exec",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "tsa-focos-bridge",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "binPath": {
+        "type": "string",
+        "description": "Absolute path to the focos CLI binary. Defaults to /usr/local/bin/focos."
+      },
+      "timeoutMs": {
+        "type": "number",
+        "description": "Hard subprocess timeout. Defaults to 5000ms."
+      },
+      "minConfidence": {
+        "type": "number",
+        "description": "Minimum confidence below which the hint is omitted. Defaults to 0 (always inject)."
+      }
+    }
+  }
+}

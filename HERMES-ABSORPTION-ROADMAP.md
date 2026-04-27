@@ -27,12 +27,15 @@ Tracking what TSA absorbs from Hermes Agent (`github.com/NousResearch/hermes-age
 - **Effort:** ~5-8h
 - **Priority:** alta quando GEX131 Gemma4-TSIA virar provider real
 
-### `/steer` busy mode (Hermes commit `635253b9` PR #16279)
+### `/steer` busy mode (Hermes commit `635253b9` PR #16279) — **ADAPTED Wave 1 E4**
 
-- **Where:** `src/agents/run.ts` no fork
+- **Where:** `extensions/tsa-steer-busy-mode/` (TS plugin, ADAPT not direct ABSORB)
 - **Why:** correção mid-run sem reset de sessão (UX Telegram melhora)
-- **Effort:** ~2h
+- **Effort:** ~2h (gasto)
 - **Priority:** média
+- **Status:** plugin esqueleto registrado (commits c67f529986 + follow-up). Hook `user_input_during_run` do Hermes não existe em `PluginHookName` — usamos `message_received` + `registerCommand(/steer)` + `steerControlledSubagentRun` existente. TODOs:
+  - Top-level (root) agent steer: requer `runtime.resolveControllerForSession()` em `PluginRuntime` + um seam `SteerableAgent`. Follow-up core PR.
+  - Cobre hoje: parent-controlling-child Telegram runs.
 
 ### `pre_tool_call` blocking + `transform_tool_result` (Hermes v0.11)
 
