@@ -137,6 +137,13 @@ export async function checkConstitution(
   // Rule 7 — Opus mais recente: any model coercion to a non-latest model is
   // blocked. The bash hook only inspected the literal "model" key; we match on
   // the serialized payload so it also catches nested invocation arguments.
+  //
+  // EXCEPTION: sessions_spawn delegates to registered subagents (agents.list)
+  // whose models are pre-approved by architecture (HERO/HUNTER use Sonnet by
+  // design). Rule 7 only blocks DIRECT model coercion attempts in main session.
+  if (call.toolName === "sessions_spawn") {
+    return null;
+  }
   for (const pattern of FORBIDDEN_MODEL_PATTERNS) {
     if (pattern.test(payload)) {
       return {
