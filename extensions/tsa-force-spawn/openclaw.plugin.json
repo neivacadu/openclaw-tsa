@@ -1,0 +1,8 @@
+{
+  "id": "tsa-force-spawn",
+  "version": "0.1.0",
+  "description": "Force ACE to delegate complex tasks via sessions_spawn(0-joker) by blocking executor tools in main session. Implements 5-agents flow enforcement (ACE -> JOKER -> HERO -> HUNTER -> JOKER -> ACE).",
+  "openclaw": {
+    "pluginApi": ">=2026.4.25"
+  }
+}
