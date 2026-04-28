@@ -10,12 +10,36 @@ export type ToolCallSnapshot = {
   params: Record<string, unknown>;
 };
 
-// Rule 1 — OAuth-only · NUNCA API key.
+// Rule 1 — OAuth-only · NUNCA API key (multi-OAuth + self-host whitelist).
 // Allowed OAuth tokens are matched FIRST and short-circuit the API-key scan
 // to avoid false positives on `sk-ant-oat01-...` (Claude CLI OAuth) — the
 // generic `sk-ant-...` pattern would otherwise match the OAuth prefix.
+//
+// Multi-provider OAuth permitido (modelo-agnóstico):
+//   • Anthropic Claude CLI  — sk-ant-oat01-…
+//   • OpenAI Codex CLI      — codex-oauth-token-… (placeholder · ajustar quando tiver token real)
+//   • Gemini OAuth (Google) — ya29.…
 const ALLOWED_OAUTH_PATTERNS = [
   /sk-ant-oat01-[a-zA-Z0-9_-]+/, // Anthropic OAuth (Claude CLI)
+  /codex-oauth-token-[a-zA-Z0-9_-]+/, // OpenAI Codex CLI OAuth (placeholder)
+  /ya29\.[a-zA-Z0-9_-]+/, // Gemini / Google OAuth (Bearer)
+];
+
+// Self-host endpoints permitidos (Tailscale rede privada · sem auth necessário).
+// Quando a chamada é p/ rede privada (100.x.x.x ou loopback) Rule 1 deixa passar
+// imediatamente — não é vazamento de credencial p/ provider externo.
+const ALLOWED_SELF_HOST_ENDPOINTS = [
+  /\bhttp:\/\/100\.\d+\.\d+\.\d+:\d+/, // Tailscale CGNAT (100.64.0.0/10)
+  /\bhttp:\/\/127\.0\.0\.1:\d+/, // localhost loopback v4
+  /\bhttp:\/\/localhost:\d+/, // localhost name
+];
+
+// OAuth file paths permitidos — leitura de credentials de OAuth providers
+// é OK (é justamente o que o sistema deve fazer p/ autenticar via CLI).
+const ALLOWED_AUTH_FILES = [
+  /\.claude\/\.credentials\.json/,
+  /\.codex\/auth\.json/,
+  /\.config\/gcloud\/application_default_credentials\.json/,
 ];
 
 const FORBIDDEN_API_KEY_PATTERNS = [
@@ -25,6 +49,7 @@ const FORBIDDEN_API_KEY_PATTERNS = [
   /sk-proj-[a-zA-Z0-9_-]{20,}/, // OpenAI project keys
   /sk-[a-zA-Z0-9]{40,}/, // OpenAI / generic 48-char key (last to lose ties)
   /AIza[0-9A-Za-z_-]{35}/, // Google / Gemini API key
+  /xai-[a-zA-Z0-9]{20,}/, // xAI (Grok)
 ];
 
 const FORBIDDEN_ENV_VARS = [
@@ -34,6 +59,9 @@ const FORBIDDEN_ENV_VARS = [
   "OPENROUTER_API_KEY",
   "GOOGLE_API_KEY",
   "GEMINI_API_KEY",
+  "XAI_API_KEY",
+  "MISTRAL_API_KEY",
+  "GROQ_API_KEY",
 ];
 
 const SENSITIVE_PATH_PATTERNS = [
@@ -142,12 +170,17 @@ export async function checkConstitution(
 }
 
 /**
- * Rule 1 — OAuth-only · NUNCA API key.
+ * Rule 1 — OAuth-only · NUNCA API key (multi-OAuth + self-host whitelist).
  *
- * Inspects the tool call for forbidden provider API keys (Anthropic genuine,
- * OpenAI, DeepSeek, OpenRouter, Google/Gemini) and forbidden env vars. Allows
- * Claude CLI OAuth tokens (`sk-ant-oat01-…`) explicitly so the only legal
- * Anthropic credential keeps working.
+ * Modelo-agnóstico: aceita OAuth de múltiplos providers (Claude CLI, Codex CLI,
+ * Gemini) e também whitelista endpoints self-host na rede privada Tailscale
+ * (100.x) e localhost. Bloqueia API keys diretas de qualquer provider.
+ *
+ * Order of checks:
+ *   1. Self-host endpoint match (Tailscale / localhost)         → PASS
+ *   2. OAuth credential file path match                         → PASS
+ *   3. Forbidden env var name match                             → BLOCK
+ *   4. Forbidden API-key shape match (after stripping OAuth)    → BLOCK
  *
  * Exported for in-process smoke tests. Pass the pre-serialized payload when
  * available to avoid double-stringifying.
@@ -156,27 +189,46 @@ export function checkRule1(call: ToolCallSnapshot, payload?: string): Constituti
   const params = call.params ?? {};
   const env = (params as { env?: Record<string, unknown> }).env ?? {};
   const command = extractCommandString(params) ?? "";
+  const url =
+    typeof (params as { url?: unknown }).url === "string" ? (params as { url: string }).url : "";
   const inputStr = payload ?? serializeParams(params);
 
-  // 1a — env var name allow/deny: cheap exact-match scan first.
+  // 1 — Self-host endpoints (Tailscale rede privada / localhost): rede privada,
+  // sem provider externo envolvido, então não há vazamento de credencial.
+  for (const pattern of ALLOWED_SELF_HOST_ENDPOINTS) {
+    if (pattern.test(url) || pattern.test(command) || pattern.test(inputStr)) {
+      return null; // self-host OK
+    }
+  }
+
+  // 2 — OAuth credential file paths permitidos (Claude CLI, Codex CLI, gcloud).
+  // Ler estes arquivos é justamente o mecanismo de autenticação OAuth.
+  for (const pattern of ALLOWED_AUTH_FILES) {
+    if (pattern.test(command) || pattern.test(inputStr)) {
+      return null; // OAuth file access OK
+    }
+  }
+
+  // 3 — env var name allow/deny: cheap exact-match scan first.
   for (const envVar of FORBIDDEN_ENV_VARS) {
     if (Object.prototype.hasOwnProperty.call(env, envVar)) {
       return {
         rule: 1,
-        reason: `env var ${envVar} detected. Use OAuth Claude CLI instead.`,
+        reason: `env var ${envVar} detected. Use OAuth (Claude CLI · Codex CLI · Gemini) instead.`,
       };
     }
     // Also catch `export FOO=...` / `FOO=... cmd` baked into the bash command.
     if (command && new RegExp(`\\b${envVar}\\s*=`).test(command)) {
       return {
         rule: 1,
-        reason: `env var ${envVar} set inline in command. Use OAuth Claude CLI instead.`,
+        reason: `env var ${envVar} set inline in command. Use OAuth (Claude CLI · Codex CLI · Gemini) instead.`,
       };
     }
   }
 
-  // 1b — token shape match. Strip allowed OAuth substrings before scanning so
-  // `sk-ant-oat01-…` cannot be mistaken for a generic `sk-…` API key.
+  // 4 — token shape match. Strip allowed OAuth substrings before scanning so
+  // OAuth tokens (sk-ant-oat01-… · ya29.… · codex-oauth-token-…) cannot be
+  // mistaken for generic API keys.
   let scanStr = inputStr;
   for (const pattern of ALLOWED_OAUTH_PATTERNS) {
     scanStr = scanStr.replace(new RegExp(pattern.source, "g"), "[oauth]");
@@ -186,7 +238,7 @@ export function checkRule1(call: ToolCallSnapshot, payload?: string): Constituti
     if (pattern.test(scanStr)) {
       return {
         rule: 1,
-        reason: `API key detected (matched ${pattern.source}). Use OAuth Claude CLI instead.`,
+        reason: `API key detected (matched ${pattern.source}). Use OAuth (Claude CLI · Codex CLI · Gemini) instead.`,
       };
     }
   }
