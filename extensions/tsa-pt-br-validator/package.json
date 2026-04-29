@@ -1,0 +1,32 @@
+{
+  "name": "@openclaw/tsa-pt-br-validator",
+  "version": "0.2.0",
+  "private": true,
+  "description": "TSA PT-BR validator (after_tool_call) — palavras vigiadas, anglicismos sem traducao, score 0-10. monitorOnly default.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p .",
+    "smoke": "node --test dist/src/smoke.test.js",
+    "test": "node --test dist/src/smoke.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "//workspaceDeps": "Quando puxar pro monorepo openclaw-tsa-git, adicionar: \"@openclaw/plugin-sdk\": \"workspace:*\". Em standalone (research/picks-v31) os tipos vem do shim em src/sdk-shim.d.ts.",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}

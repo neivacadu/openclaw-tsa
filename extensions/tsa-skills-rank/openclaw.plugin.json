@@ -1,0 +1,75 @@
+{
+  "id": "tsa-skills-rank",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "topN": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 50,
+        "description": "Quantas skills entram no system prompt via appendSystemContext."
+      },
+      "fts5Weight": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "default": 0.4,
+        "description": "Peso do score FTS5 (bm25 normalizado)."
+      },
+      "useRecencyWeight": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "default": 0.3,
+        "description": "Peso combinado de uso recente + boost log10(use_count)."
+      },
+      "successRateWeight": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "default": 0.2,
+        "description": "Peso da success_rate (atualizada por after_tool_call)."
+      },
+      "categoryMatchWeight": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "default": 0.1,
+        "description": "Peso do match de categoria (heuristica simples; V2 troca por embedding)."
+      },
+      "skillsDir": {
+        "type": "string",
+        "default": "/home/ace-tsia/.openclaw/workspace/skills",
+        "description": "Diretorio raiz lido somente leitura para indexar SKILL.md."
+      },
+      "dbPath": {
+        "type": "string",
+        "default": "/home/ace-tsia/.openclaw/data/skills.sqlite",
+        "description": "Path absoluto do SQLite com schema FTS5."
+      },
+      "reindexCron": {
+        "type": "string",
+        "default": "0 4 * * *",
+        "description": "Cron schedule (informational; cron e externo via scripts/index-skills.sh)."
+      },
+      "snapshotKey": {
+        "type": "string",
+        "default": "skillsSnapshot",
+        "description": "Marker label usado dentro do bloco appendSystemContext."
+      },
+      "recencyWindowDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365,
+        "default": 30,
+        "description": "Janela em dias usada na recency_score."
+      },
+      "metricsPushgateway": {
+        "type": "string",
+        "description": "URL do Prometheus pushgateway (opcional, best-effort)."
+      }
+    }
+  }
+}

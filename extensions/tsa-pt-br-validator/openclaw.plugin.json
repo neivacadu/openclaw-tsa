@@ -1,0 +1,41 @@
+{
+  "id": "tsa-pt-br-validator",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": false,
+        "description": "Master switch. Default false — fail-closed em prod."
+      },
+      "monitorOnly": {
+        "type": "boolean",
+        "default": true,
+        "description": "true = warning + metrica (allow). false = enforcement (deny + sugestao)."
+      },
+      "scoreThreshold": {
+        "type": "number",
+        "default": 7,
+        "description": "Score abaixo do qual o evento eh logado / bloqueado."
+      },
+      "minTextLength": {
+        "type": "number",
+        "default": 200,
+        "description": "Texto menor que isso eh ignorado (snippets, codigo curto)."
+      },
+      "watchedWordsPath": {
+        "type": "string",
+        "default": "/home/ace-tsia/.openclaw/workspace/skills/0-revisao-pt-br/knowledge/palavras-vigiadas.md"
+      },
+      "anglicismsPath": {
+        "type": "string",
+        "default": "/home/ace-tsia/.openclaw/workspace/skills/0-revisao-pt-br/knowledge/anglicismos-traducoes.md"
+      },
+      "logPath": {
+        "type": "string",
+        "default": "/var/log/tsa-pt-br-validator.jsonl"
+      }
+    }
+  }
+}

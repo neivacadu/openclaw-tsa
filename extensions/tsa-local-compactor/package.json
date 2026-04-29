@@ -1,0 +1,41 @@
+{
+  "name": "@openclaw/tsa-local-compactor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Heuristic local compactor — substitui Opus em cascades ACE→JOKER/HERO/CREATOR/HUNTER. Zero LLM no caminho quente.",
+  "keywords": [
+    "compactor",
+    "context",
+    "openclaw",
+    "plugin",
+    "tsa"
+  ],
+  "license": "UNLICENSED",
+  "author": "TSA",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "smoke": "node --enable-source-maps dist/src/smoke.test.js",
+    "test": "node --enable-source-maps dist/src/smoke.test.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}

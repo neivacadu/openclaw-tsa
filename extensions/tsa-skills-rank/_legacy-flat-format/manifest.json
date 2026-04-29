@@ -1,0 +1,59 @@
+{
+  "name": "tsa-skills-rank",
+  "version": "0.1.0",
+  "enabled": false,
+  "description": "Banco completo de skills + rank rapido pra system prompt. Skills off-rank invocaveis sob demanda.",
+  "entry": "src/index.ts",
+  "hooks": [
+    {
+      "name": "before_prompt_build",
+      "handler": "onBeforePromptBuild",
+      "priority": 50
+    },
+    {
+      "name": "after_tool_call",
+      "handler": "onAfterToolCall",
+      "priority": 50
+    }
+  ],
+  "tools": [
+    {
+      "name": "skill_search",
+      "description": "Busca skills no banco completo (1.424 skills) alem das top 50 do rank. Retorna nome, descricao e hint de invocacao.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Texto livre pra match em FTS5 (nome, descricao, keywords)."
+          },
+          "limit": { "type": "integer", "default": 10, "minimum": 1, "maximum": 50 }
+        },
+        "required": ["query"]
+      },
+      "handler": "toolSkillSearch"
+    }
+  ],
+  "config": {
+    "topN": 50,
+    "fts5Weight": 0.4,
+    "useRecencyWeight": 0.3,
+    "successRateWeight": 0.2,
+    "categoryMatchWeight": 0.1,
+    "skillsDir": "/home/ace-tsia/.openclaw/workspace/skills",
+    "dbPath": "/home/ace-tsia/.openclaw/data/skills.sqlite",
+    "reindexCron": "0 4 * * *",
+    "snapshotKey": "skillsSnapshot",
+    "recencyWindowDays": 30,
+    "metricsPushgateway": "http://localhost:9091"
+  },
+  "permissions": {
+    "fs": ["read:/home/ace-tsia/.openclaw/workspace/skills", "rw:/home/ace-tsia/.openclaw/data"],
+    "net": ["http://localhost:9091"]
+  },
+  "owner": "ace-tsia",
+  "constitution": {
+    "appliesRule": ["R-005", "R-021", "R-077"],
+    "notes": "V1 funcional FTS5+heuristica. V2 troca por pgvector quando Camada 4 subir."
+  }
+}

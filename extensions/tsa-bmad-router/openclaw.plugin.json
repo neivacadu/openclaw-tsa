@@ -1,0 +1,64 @@
+{
+  "id": "tsa-bmad-router",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "complexityThreshold": {
+        "type": "integer",
+        "enum": [1, 2, 3],
+        "default": 3
+      },
+      "bmadPersonasDir": {
+        "type": "string",
+        "default": "/home/ace-tsia/.openclaw/workspace/_bmad/core/agents"
+      },
+      "phaseSequence": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["1-analysis", "2-plan-workflows", "3-solutioning", "4-implementation"]
+        },
+        "default": ["1-analysis", "2-plan-workflows", "3-solutioning", "4-implementation"]
+      },
+      "personaMapping": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "fallbackToVanillaJoker": {
+        "type": "boolean",
+        "default": true
+      },
+      "logDecisions": {
+        "type": "boolean",
+        "default": true
+      },
+      "monitorOnly": {
+        "type": "boolean",
+        "default": true
+      },
+      "targetAgent": {
+        "type": "string",
+        "default": "0-joker"
+      },
+      "longRequestThreshold": {
+        "type": "integer",
+        "default": 200
+      },
+      "complexKeywords": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "stakeholderKeywords": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "multiStepRegex": {
+        "type": "string"
+      }
+    }
+  }
+}
