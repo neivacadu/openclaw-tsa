@@ -1,8 +1,0 @@
-{
-  "id": "tsa-force-spawn",
-  "configSchema": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {}
-  }
-}
