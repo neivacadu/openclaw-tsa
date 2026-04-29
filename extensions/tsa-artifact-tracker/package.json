@@ -1,0 +1,31 @@
+{
+  "name": "tsa-artifact-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Auto-track artifacts (HTML/PDF/MD/etc) created by Ace tools, with FTS5 search and public URL inference",
+  "keywords": [
+    "artifacts",
+    "fts5",
+    "openclaw",
+    "tracking",
+    "tsa"
+  ],
+  "license": "UNLICENSED",
+  "author": "TSA / Cadu Neiva",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "smoke": "ts-node src/smoke.test.ts",
+    "test": "ts-node src/smoke.test.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.11.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  }
+}

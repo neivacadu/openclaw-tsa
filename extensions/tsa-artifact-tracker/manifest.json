@@ -1,0 +1,80 @@
+{
+  "name": "tsa-artifact-tracker",
+  "version": "0.1.0",
+  "description": "Tracks artifacts produced by Write/Edit/Bash via after_tool_call hook; exposes artifacts_search, artifacts_recent, artifacts_get_by_path, artifacts_update_status",
+  "enabled": false,
+  "hooks": {
+    "after_tool_call": "src/index.ts#onAfterToolCall"
+  },
+  "tools": [
+    {
+      "name": "artifacts_search",
+      "description": "Full-text search over tracked artifacts (path, filename, prompt_summary, tags). Filter by kind, returns most recent first.",
+      "handler": "src/index.ts#toolSearch",
+      "params": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string", "description": "FTS5 query (e.g. 'aula vendas')" },
+          "kind": {
+            "type": "string",
+            "enum": ["html", "pdf", "doc", "md", "image", "video", "audio", "data", "code", "other"]
+          },
+          "limit": { "type": "integer", "default": 10, "minimum": 1, "maximum": 100 }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "artifacts_recent",
+      "description": "List artifacts created in the last N hours, ordered by created_at desc. Default 24h, limit 20.",
+      "handler": "src/index.ts#toolRecent",
+      "params": {
+        "type": "object",
+        "properties": {
+          "hours_back": { "type": "integer", "default": 24, "minimum": 1, "maximum": 8760 },
+          "limit": { "type": "integer", "default": 20, "minimum": 1, "maximum": 200 }
+        }
+      }
+    },
+    {
+      "name": "artifacts_get_by_path",
+      "description": "Fetch a single artifact by its absolute filesystem path.",
+      "handler": "src/index.ts#toolGetByPath",
+      "params": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "artifacts_update_status",
+      "description": "Mark an artifact as active|archived|deleted. Use 'archived' when user asks to update/replace a published page.",
+      "handler": "src/index.ts#toolUpdateStatus",
+      "params": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "archived", "deleted"] }
+        },
+        "required": ["path", "status"]
+      }
+    }
+  ],
+  "config": {
+    "dbPath": "/home/ace-tsia/.openclaw/data/artifacts.sqlite",
+    "publicUrlMappings": {
+      "/var/www/ace/": "https://ace.caduneiva.com/",
+      "/var/www/site2/": "https://site2.caduneiva.com/"
+    },
+    "trackedTools": ["Write", "Edit", "Bash"],
+    "minSize": 100,
+    "ignorePaths": ["/tmp/", ".git/", "node_modules/", ".cache/", "/.openclaw/cache/"]
+  },
+  "metrics": {
+    "tsa_artifacts_tracked_total": { "type": "counter", "labels": ["kind"] },
+    "tsa_artifacts_searches_total": { "type": "counter" },
+    "tsa_artifacts_total": { "type": "gauge", "labels": ["status"] }
+  }
+}
