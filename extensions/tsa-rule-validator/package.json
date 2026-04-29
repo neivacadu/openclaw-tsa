@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-rule-validator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Valida regras YAML em /opt/tsa-ace-master/rules/: schema, cross-refs, version semver. Hook gateway_start. enabled:false default.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}

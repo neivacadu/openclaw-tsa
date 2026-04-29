@@ -1,0 +1,8 @@
+{
+  "id": "tsa-cascade-monitor",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
