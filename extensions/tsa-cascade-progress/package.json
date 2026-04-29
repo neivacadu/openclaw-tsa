@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-cascade-progress",
+  "version": "0.1.0-mvp",
+  "private": true,
+  "description": "ACK <3s + progress edit a cada 30s durante cascade Camada 1. Evita bot mudo no Telegram. Fallback automatico p99=180s pra Camada 2.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}

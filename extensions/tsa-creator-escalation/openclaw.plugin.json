@@ -1,0 +1,8 @@
+{
+  "id": "tsa-creator-escalation",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

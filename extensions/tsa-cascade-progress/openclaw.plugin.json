@@ -1,0 +1,8 @@
+{
+  "id": "tsa-cascade-progress",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

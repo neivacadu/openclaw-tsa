@@ -1,0 +1,8 @@
+{
+  "id": "tsa-rule-validator",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

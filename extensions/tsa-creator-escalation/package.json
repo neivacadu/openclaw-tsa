@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-creator-escalation",
+  "version": "0.1.0-mvp",
+  "private": true,
+  "description": "Escalation 3 niveis (30min ACE responde ETA / 24h stale / 48h DM Cadu) pra skills criadas pelo CREATOR aguardando aprovacao Cadu via topico Operacoes 4770.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}
