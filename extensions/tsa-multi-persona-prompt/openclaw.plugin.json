@@ -1,0 +1,20 @@
+{
+  "id": "tsa-multi-persona-prompt",
+  "version": "1.0.0",
+  "displayName": "TSA Multi-Persona Prompt Injector",
+  "description": "Injeta protocolo dos 5 chapéus (JOKER/HERO/CREATOR/HUNTER/ACE) no system prompt do agente 0-ace via before_prompt_build hook",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "agentId": {
+        "type": "string",
+        "default": "0-ace"
+      },
+      "promptFilePath": {
+        "type": "string",
+        "default": "/home/ace-tsia/.openclaw/workspace/output-styles/turbo.md"
+      }
+    }
+  }
+}
