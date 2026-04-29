@@ -1,0 +1,17 @@
+{
+  "id": "tsa-subagent-redirect",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "routingFilePath": {
+        "type": "string",
+        "default": "/home/ace-tsia/.openclaw/workspace/agents/roles-routing.yaml"
+      },
+      "logFilePath": {
+        "type": "string",
+        "default": "/home/ace-tsia/.openclaw/hooks/redirect-audit.log"
+      }
+    }
+  }
+}

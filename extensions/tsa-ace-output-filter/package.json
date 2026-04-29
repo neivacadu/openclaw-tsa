@@ -1,0 +1,21 @@
+{
+  "name": "@openclaw/tsa-ace-output-filter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Filter 0-ace agent output before Telegram delivery: extract <<ACE>>...<<END>> block via message_sending hook.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}
