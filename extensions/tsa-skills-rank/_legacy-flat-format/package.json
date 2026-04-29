@@ -1,0 +1,33 @@
+{
+  "name": "tsa-skills-rank",
+  "version": "0.1.0",
+  "description": "Mantem TODAS as 1.424 skills no banco SQLite local; rank rapido (FTS5 + uso + sucesso) escolhe top N pro system prompt; restantes invocaveis sob demanda via skill_search/skill_invoke.",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p .",
+    "index": "bash scripts/index-skills.sh",
+    "test": "tsx src/smoke.test.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  },
+  "openclawPlugin": {
+    "hooks": [
+      "before_prompt_build",
+      "after_tool_call"
+    ],
+    "tools": [
+      "skill_search"
+    ],
+    "owner": "ace-tsia",
+    "tier": "core"
+  }
+}

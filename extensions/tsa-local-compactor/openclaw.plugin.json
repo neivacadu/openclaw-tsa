@@ -1,0 +1,22 @@
+{
+  "id": "tsa-local-compactor",
+  "name": "TSA Local Compactor",
+  "description": "Heuristic local compactor — injeta <summary> via before_prompt_build em cascades ACE→subagent. Zero LLM no caminho quente.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "preserveRecent": { "type": "integer", "minimum": 1, "default": 8 },
+      "maxTokens": { "type": "integer", "minimum": 1000, "default": 15000 },
+      "compactTarget": { "type": "integer", "minimum": 500, "default": 6000 },
+      "mode": { "type": "string", "enum": ["heuristic", "llm", "off"], "default": "heuristic" },
+      "logBeforeAfter": { "type": "boolean", "default": true }
+    }
+  },
+  "metadata": {
+    "owner": "TSA",
+    "pick": "A3",
+    "spec": "research/picks-v31/A3-local-compactor-spec.md",
+    "rolloutPolicy": "canary-1-bot-then-52"
+  }
+}

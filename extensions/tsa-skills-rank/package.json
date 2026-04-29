@@ -1,0 +1,54 @@
+{
+  "name": "@openclaw/tsa-skills-rank",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Mantem TODAS as 1.424 skills no banco SQLite local; rank rapido (FTS5 + uso + sucesso) escolhe top N pro system prompt; restantes invocaveis sob demanda via skill_search/skill_invoke. SDK refactor (flat -> definePluginEntry).",
+  "keywords": [
+    "ace-tsia",
+    "fts5",
+    "openclaw",
+    "plugin",
+    "rank",
+    "sdk",
+    "skills",
+    "tsa"
+  ],
+  "license": "UNLICENSED",
+  "author": "TSA / Cadu Neiva <cadu@caduneiva.com>",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "index": "bash scripts/index-skills.sh",
+    "smoke": "node --enable-source-maps dist/src/smoke.test.js",
+    "test": "node --enable-source-maps dist/src/smoke.test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    },
+    "tier": "core",
+    "owner": "ace-tsia"
+  },
+  "_sdk_note": "@openclaw/plugin-sdk e workspace:* na produção (monorepo /opt/openclaw-tsa-git). Na build standalone (research/picks-v31) usamos types/plugin-entry-stub.d.ts via tsconfig paths para fornecer o type surface que definePluginEntry/api.on/api.registerTool precisam."
+}

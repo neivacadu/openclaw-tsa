@@ -1,0 +1,43 @@
+{
+  "name": "@openclaw/tsa-bmad-router",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Auto-activates BMAD personas on complex JOKER spawns. Hook subagent_spawning. Heuristic complexity classifier (zero-LLM) + persona-flag injection via systemPromptPrepend. Pick P1-C — multi-persona alinhado v1.1. SDK refactor (flat -> definePluginEntry).",
+  "keywords": [
+    "bmad",
+    "openclaw",
+    "persona",
+    "plugin",
+    "router",
+    "sdk",
+    "subagent",
+    "tsa"
+  ],
+  "license": "UNLICENSED",
+  "author": "TSA",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "smoke": "node --enable-source-maps dist/src/smoke.test.js",
+    "test": "node --enable-source-maps dist/src/smoke.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}
