@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/tsa-artifact-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    }
+  }
+}

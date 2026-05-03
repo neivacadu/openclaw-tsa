@@ -51,11 +51,11 @@ type ClaudeLiveRunResult = {
 };
 
 const CLAUDE_LIVE_IDLE_TIMEOUT_MS = 10 * 60 * 1_000;
-const CLAUDE_LIVE_MAX_SESSIONS = 16;
-const CLAUDE_LIVE_MAX_STDERR_CHARS = 64 * 1024;
-const CLAUDE_LIVE_MAX_TURN_RAW_CHARS = 2 * 1024 * 1024;
+const CLAUDE_LIVE_MAX_SESSIONS = 32;
+const CLAUDE_LIVE_MAX_STDERR_CHARS = 512 * 1024;
+const CLAUDE_LIVE_MAX_TURN_RAW_CHARS = 16 * 1024 * 1024;
 const CLAUDE_LIVE_MAX_PENDING_LINE_CHARS = CLAUDE_LIVE_MAX_TURN_RAW_CHARS;
-const CLAUDE_LIVE_MAX_TURN_LINES = 5_000;
+const CLAUDE_LIVE_MAX_TURN_LINES = 30_000;
 const liveSessions = new Map<string, ClaudeLiveSession>();
 const liveSessionCreates = new Map<string, Promise<ClaudeLiveSession>>();
 

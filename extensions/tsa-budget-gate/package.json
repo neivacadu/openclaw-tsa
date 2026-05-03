@@ -1,0 +1,51 @@
+{
+  "name": "@openclaw/tsa-budget-gate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TSA OpenClaw extension: per-tier budget gate (token/turn + request/month) with Postgres counters, Telegram alerts and Prometheus metrics. Pick A12 of Ace-TSIA v3.1.",
+  "keywords": [
+    "ace-tsia",
+    "budget",
+    "cost-tracker",
+    "extension",
+    "gate",
+    "openclaw",
+    "tsa"
+  ],
+  "license": "UNLICENSED",
+  "author": "TSA / Cadu Neiva <cadu@caduneiva.com>",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.local.json",
+    "build:full": "tsc -p tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "smoke": "vitest run src/smoke.test.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "prom-client": "^15.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/pg": "^8.11.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "comment_devDependencies_workspace": "When dropped into the openclaw-tsa fork as extensions/tsa-budget-gate, add devDep \"@openclaw/plugin-sdk\": \"workspace:*\" — it resolves the openclaw/plugin-sdk/plugin-entry imports used by index.ts + src/plugin.ts. Locally we ship build:full disabled and rely on tsconfig.local.json which excludes those two files.",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    }
+  }
+}

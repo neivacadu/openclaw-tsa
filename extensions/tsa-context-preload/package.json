@@ -1,0 +1,52 @@
+{
+  "name": "@openclaw/tsa-context-preload",
+  "version": "0.2.0",
+  "private": true,
+  "description": "TSA OpenClaw SDK plugin: pre-load workspace context (recent memories + artifacts + last session tail) into system prompt at before_prompt_build. Pick P0-A of Ace-TSIA v3.1. Heuristic band-aid until pgvector (P2-E).",
+  "keywords": [
+    "ace-tsia",
+    "context",
+    "memory",
+    "openclaw",
+    "plugin",
+    "preload",
+    "tsa"
+  ],
+  "license": "UNLICENSED",
+  "author": "TSA / Cadu Neiva <cadu@caduneiva.com>",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p .",
+    "lint": "eslint src --ext .ts",
+    "smoke": "vitest run",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.0"
+  },
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*",
+    "@types/node": "^20.11.0",
+    "typescript": "^6.0.3",
+    "vitest": "^1.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.4.25"
+    },
+    "build": {
+      "openclawVersion": "2026.4.25"
+    },
+    "tier": "lab",
+    "owner": "tsa-core"
+  }
+}

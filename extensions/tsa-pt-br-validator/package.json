@@ -5,6 +5,7 @@
   "description": "TSA PT-BR validator (after_tool_call) — palavras vigiadas, anglicismos sem traducao, score 0-10. monitorOnly default.",
   "license": "UNLICENSED",
   "type": "module",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p .",
     "smoke": "node --test dist/src/smoke.test.js",

@@ -1,0 +1,8 @@
+{
+  "id": "tsa-artifact-tracker",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

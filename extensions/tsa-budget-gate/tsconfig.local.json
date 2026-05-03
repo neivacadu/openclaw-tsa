@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist-local"
+  },
+  "include": ["./src/budget-gate.ts", "./src/metrics.ts"],
+  "exclude": [
+    "./index.ts",
+    "./src/plugin.ts",
+    "./**/*.test.ts",
+    "./dist/**",
+    "./dist-local/**",
+    "./node_modules/**",
+    "./_legacy-flat-format/**"
+  ]
+}

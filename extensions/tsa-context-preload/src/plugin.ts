@@ -1,0 +1,503 @@
+/**
+ * tsa-context-preload — plugin logic (Pick P0-A, Ace-TSIA v3.1)
+ *
+ * Hook plugin for OpenClaw fork TSA. At `before_prompt_build`, scans the
+ * agent workspace and injects three blocks into the system prompt:
+ *   1. Memory MDs modified in the last N days
+ *   2. Artifacts (html/pdf/doc/md/png/jpg) created in the last N hours
+ *   3. Tail of the most recent session jsonl (last K turns)
+ *
+ * IMPORTANT: heuristic recall (mtime, not semantic). Will be replaced by
+ * Camada 4 (pgvector retrieval) in v1.6 / P2-E. Ships disabled.
+ *
+ * Refactor 0.2.0: SDK shape (definePluginEntry + api.on). Logic preserved
+ * 1:1 from 0.1.0 flat format.
+ */
+
+import { promises as fs } from "node:fs";
+import * as path from "node:path";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import { Counter, Gauge, Histogram, Registry } from "prom-client";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface ContextPreloadConfig {
+  memoryDaysBack: number;
+  artifactsHoursBack: number;
+  lastSessionTurns: number;
+  maxTokens: number;
+  memoryDir: string;
+  artifactsDirs: string[];
+  artifactExtensions: string[];
+  publicUrlPrefix: string;
+  publicUrlBasePath: string;
+  sessionsDir: string;
+  agentsToInject: string[];
+}
+
+export interface HookContext {
+  agentId?: string;
+  sessionId?: string;
+  systemPrompt?: string;
+}
+
+export interface HookResult {
+  systemPromptAppend?: string;
+  metadata: {
+    memories: number;
+    artifacts: number;
+    sessionTurns: number;
+    tokensInjected: number;
+    skipped: boolean;
+    reason?: string;
+  };
+}
+
+interface MemoryEntry {
+  path: string;
+  mtimeMs: number;
+  firstLine: string;
+}
+interface ArtifactEntry {
+  path: string;
+  mtimeMs: number;
+  sizeBytes: number;
+  publicUrl?: string;
+}
+interface SessionTurn {
+  role: "user" | "ace" | "assistant";
+  text: string;
+}
+
+// ---------------------------------------------------------------------------
+// Defaults (mirror previous manifest.config block)
+// ---------------------------------------------------------------------------
+
+export const DEFAULT_CONFIG: ContextPreloadConfig = {
+  memoryDaysBack: 3,
+  artifactsHoursBack: 24,
+  lastSessionTurns: 20,
+  maxTokens: 5000,
+  memoryDir: "/home/ace-tsia/.openclaw/workspace/memory",
+  artifactsDirs: ["/home/ace-tsia/.openclaw/workspace"],
+  artifactExtensions: ["html", "pdf", "doc", "docx", "md", "png", "jpg", "jpeg"],
+  publicUrlPrefix: "https://ace.caduneiva.com/",
+  publicUrlBasePath: "/var/www/ace/",
+  sessionsDir: "/home/ace-tsia/.openclaw/sessions",
+  agentsToInject: ["0-ace"],
+};
+
+// ---------------------------------------------------------------------------
+// Metrics
+// ---------------------------------------------------------------------------
+
+export interface PreloadMetrics {
+  registry: Registry;
+  runs: Counter<"result">;
+  tokens: Histogram<string>;
+  artifacts: Gauge<string>;
+}
+
+let _metrics: PreloadMetrics | null = null;
+export function getMetrics(): PreloadMetrics {
+  if (_metrics) return _metrics;
+  const registry = new Registry();
+  const runs = new Counter({
+    name: "tsa_context_preload_runs_total",
+    help: "Total context preload runs",
+    labelNames: ["result"] as const,
+    registers: [registry],
+  });
+  const tokens = new Histogram({
+    name: "tsa_context_preload_tokens_injected",
+    help: "Tokens injected per run",
+    buckets: [100, 500, 1000, 2000, 3000, 4000, 5000, 8000],
+    registers: [registry],
+  });
+  const artifacts = new Gauge({
+    name: "tsa_context_preload_artifacts_count",
+    help: "Artifacts found in last run",
+    registers: [registry],
+  });
+  _metrics = { registry, runs, tokens, artifacts };
+  return _metrics;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4) + 1;
+}
+
+async function safeReaddir(dir: string): Promise<string[]> {
+  try {
+    return await fs.readdir(dir);
+  } catch {
+    return [];
+  }
+}
+
+async function safeStat(p: string) {
+  try {
+    return await fs.stat(p);
+  } catch {
+    return null;
+  }
+}
+
+async function* walk(dir: string, depth = 0, max = 4): AsyncGenerator<string> {
+  if (depth > max) return;
+  for (const name of await safeReaddir(dir)) {
+    if (name.startsWith(".")) continue;
+    const full = path.join(dir, name);
+    const st = await safeStat(full);
+    if (!st) continue;
+    if (st.isDirectory()) yield* walk(full, depth + 1, max);
+    else yield full;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loaders
+// ---------------------------------------------------------------------------
+
+export async function loadRecentMemories(
+  memoryDir: string,
+  daysBack: number,
+  now = Date.now(),
+): Promise<MemoryEntry[]> {
+  const cutoff = now - daysBack * 86_400_000;
+  const out: MemoryEntry[] = [];
+  for (const name of await safeReaddir(memoryDir)) {
+    if (!name.endsWith(".md")) continue;
+    const full = path.join(memoryDir, name);
+    const st = await safeStat(full);
+    if (!st || !st.isFile() || st.mtimeMs < cutoff) continue;
+    let firstLine = "";
+    try {
+      const content = await fs.readFile(full, "utf8");
+      firstLine = (content.split("\n").find((l) => l.trim()) ?? "")
+        .replace(/^#+\s*/, "")
+        .trim()
+        .slice(0, 200);
+    } catch {
+      /* ignore */
+    }
+    out.push({ path: full, mtimeMs: st.mtimeMs, firstLine });
+  }
+  return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
+}
+
+export async function findRecentArtifacts(
+  dirs: string[],
+  hoursBack: number,
+  exts: string[],
+  publicUrlPrefix: string,
+  publicUrlBasePath: string,
+  now = Date.now(),
+): Promise<ArtifactEntry[]> {
+  const cutoff = now - hoursBack * 3_600_000;
+  const extSet = new Set(exts.map((e) => e.toLowerCase().replace(/^\./, "")));
+  const out: ArtifactEntry[] = [];
+  for (const dir of dirs) {
+    for await (const f of walk(dir)) {
+      const ext = path.extname(f).toLowerCase().replace(/^\./, "");
+      if (!extSet.has(ext)) continue;
+      const st = await safeStat(f);
+      if (!st || !st.isFile() || st.mtimeMs < cutoff) continue;
+      let publicUrl: string | undefined;
+      if (publicUrlBasePath && f.startsWith(publicUrlBasePath)) {
+        const rel = f.slice(publicUrlBasePath.length).replace(/^\/+/, "");
+        publicUrl = publicUrlPrefix.replace(/\/+$/, "") + "/" + rel;
+      }
+      out.push({ path: f, mtimeMs: st.mtimeMs, sizeBytes: st.size, publicUrl });
+    }
+  }
+  return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
+}
+
+export async function loadLastSessionTail(
+  sessionsDir: string,
+  turns: number,
+): Promise<SessionTurn[]> {
+  const files: { p: string; m: number }[] = [];
+  for (const name of await safeReaddir(sessionsDir)) {
+    if (!name.endsWith(".jsonl")) continue;
+    const full = path.join(sessionsDir, name);
+    const st = await safeStat(full);
+    if (st?.isFile()) files.push({ p: full, m: st.mtimeMs });
+  }
+  if (!files.length) return [];
+  files.sort((a, b) => b.m - a.m);
+  const latest = files[0].p;
+  let raw: string;
+  try {
+    raw = await fs.readFile(latest, "utf8");
+  } catch {
+    return [];
+  }
+  const out: SessionTurn[] = [];
+  for (const line of raw.split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const j = JSON.parse(line);
+      const role = (j.role ?? j.type ?? "").toString();
+      const text = (j.text ?? j.content ?? j.message ?? "").toString();
+      if (!text) continue;
+      if (role === "user") out.push({ role: "user", text });
+      else if (role === "assistant" || role === "ace" || role === "model")
+        out.push({ role: "ace", text });
+    } catch {
+      /* skip bad line */
+    }
+  }
+  return out.slice(-turns);
+}
+
+// ---------------------------------------------------------------------------
+// Format + budget
+// ---------------------------------------------------------------------------
+
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n}B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)}KB`;
+  return `${(n / 1024 / 1024).toFixed(1)}MB`;
+}
+
+function fmtDate(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+function compactTurn(t: SessionTurn): string {
+  const text = t.text.replace(/\s+/g, " ").trim().slice(0, 240);
+  return `- ${t.role}: ${text}`;
+}
+
+export function buildBlock(
+  memories: MemoryEntry[],
+  artifacts: ArtifactEntry[],
+  turns: SessionTurn[],
+  maxTokens: number,
+): { text: string; tokens: number; counts: { mem: number; art: number; turn: number } } {
+  const header = "## Contexto recuperado (auto)\n";
+  const memHead = "\n### Memórias últimos 3 dias\n";
+  const artHead = "\n### Artefatos gerados últimas 24h\n";
+  const sesHead = "\n### Última sessão (turns recentes)\n";
+
+  const memLines = memories.map((m) => {
+    const date = fmtDate(m.mtimeMs);
+    const name = path.basename(m.path, ".md");
+    const hint = m.firstLine ? ` -- ${m.firstLine}` : "";
+    return `- ${date} ${name}${hint}`;
+  });
+  const artLines = artifacts.map((a) => {
+    const url = a.publicUrl ? ` -- pública em ${a.publicUrl}` : "";
+    return `- ${a.path} (${fmtBytes(a.sizeBytes)})${url}`;
+  });
+  const turnLines = turns.map(compactTurn);
+
+  // Greedy budget — recency first within each section.
+  let budget = maxTokens;
+  const took = { mem: 0, art: 0, turn: 0 };
+  const acc: string[] = [header];
+  const consume = (s: string): boolean => {
+    const t = estimateTokens(s);
+    if (t > budget) return false;
+    budget -= t;
+    acc.push(s);
+    return true;
+  };
+  consume(memHead);
+  for (const l of memLines) {
+    if (consume(l + "\n")) took.mem++;
+    else break;
+  }
+  consume(artHead);
+  for (const l of artLines) {
+    if (consume(l + "\n")) took.art++;
+    else break;
+  }
+  consume(sesHead);
+  for (const l of turnLines) {
+    if (consume(l + "\n")) took.turn++;
+    else break;
+  }
+
+  const text = acc.join("");
+  return { text, tokens: estimateTokens(text), counts: took };
+}
+
+// ---------------------------------------------------------------------------
+// Plugin core (logic identical to 0.1.0)
+// ---------------------------------------------------------------------------
+
+export class ContextPreload {
+  constructor(public config: ContextPreloadConfig) {}
+
+  async loadContext(ctx: HookContext = {}): Promise<HookResult> {
+    const m = getMetrics();
+    try {
+      if (
+        ctx.agentId &&
+        this.config.agentsToInject?.length &&
+        !this.config.agentsToInject.includes(ctx.agentId)
+      ) {
+        m.runs.inc({ result: "ok" });
+        return {
+          metadata: {
+            memories: 0,
+            artifacts: 0,
+            sessionTurns: 0,
+            tokensInjected: 0,
+            skipped: true,
+            reason: "agent-not-targeted",
+          },
+        };
+      }
+
+      const [mems, arts, turns] = await Promise.all([
+        loadRecentMemories(this.config.memoryDir, this.config.memoryDaysBack),
+        findRecentArtifacts(
+          this.config.artifactsDirs,
+          this.config.artifactsHoursBack,
+          this.config.artifactExtensions,
+          this.config.publicUrlPrefix,
+          this.config.publicUrlBasePath,
+        ),
+        loadLastSessionTail(this.config.sessionsDir, this.config.lastSessionTurns),
+      ]);
+
+      const block = buildBlock(mems, arts, turns, this.config.maxTokens);
+      m.runs.inc({ result: "ok" });
+      m.tokens.observe(block.tokens);
+      m.artifacts.set(arts.length);
+
+      return {
+        systemPromptAppend: block.text,
+        metadata: {
+          memories: block.counts.mem,
+          artifacts: block.counts.art,
+          sessionTurns: block.counts.turn,
+          tokensInjected: block.tokens,
+          skipped: false,
+        },
+      };
+    } catch (e) {
+      m.runs.inc({ result: "error" });
+      return {
+        metadata: {
+          memories: 0,
+          artifacts: 0,
+          sessionTurns: 0,
+          tokensInjected: 0,
+          skipped: true,
+          reason: `error: ${(e as Error).message}`,
+        },
+      };
+    }
+  }
+}
+
+export function createContextPreload(config: ContextPreloadConfig): ContextPreload {
+  return new ContextPreload(config);
+}
+
+// ---------------------------------------------------------------------------
+// SDK config resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Merge defaults + plugin config from openclaw config tree. Unknown values
+ * are dropped silently; missing values fall through to DEFAULT_CONFIG.
+ */
+export function resolveConfig(raw: Record<string, unknown> | undefined): ContextPreloadConfig {
+  const cfg = { ...DEFAULT_CONFIG };
+  if (!raw || typeof raw !== "object") return cfg;
+
+  const numericKeys = [
+    "memoryDaysBack",
+    "artifactsHoursBack",
+    "lastSessionTurns",
+    "maxTokens",
+  ] as const;
+  for (const k of numericKeys) {
+    const v = raw[k];
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) {
+      (cfg as Record<string, unknown>)[k] = v;
+    }
+  }
+
+  const stringKeys = ["memoryDir", "publicUrlPrefix", "publicUrlBasePath", "sessionsDir"] as const;
+  for (const k of stringKeys) {
+    const v = raw[k];
+    if (typeof v === "string" && v.length) {
+      (cfg as Record<string, unknown>)[k] = v;
+    }
+  }
+
+  const arrayKeys = ["artifactsDirs", "artifactExtensions", "agentsToInject"] as const;
+  for (const k of arrayKeys) {
+    const v = raw[k];
+    if (Array.isArray(v) && v.every((x) => typeof x === "string")) {
+      (cfg as Record<string, unknown>)[k] = v as string[];
+    }
+  }
+
+  return cfg;
+}
+
+// ---------------------------------------------------------------------------
+// SDK hook handler
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a `before_prompt_build` handler bound to a config-resolver. We accept
+ * a resolver (not the static config) so `api.pluginConfig` is re-read on
+ * every invocation — matches the live-config pattern from active-memory and
+ * diffs (the operator can flip enabled / target agents without restart in
+ * the fork).
+ */
+export function createBeforePromptBuildHandler(
+  resolveCfg: () => ContextPreloadConfig,
+  logger?: { warn?: (msg: string) => void; debug?: (msg: string) => void },
+): (event: any, ctx: any) => Promise<any> {
+  return async (_event: any, ctx: any): Promise<any> => {
+    const cfg = resolveCfg();
+    const plugin = new ContextPreload(cfg);
+    const res = await plugin.loadContext({
+      agentId: ctx.agentId,
+      sessionId: ctx.sessionId ?? ctx.sessionKey,
+    });
+
+    if (res.metadata.skipped) {
+      logger?.debug?.(
+        `tsa-context-preload skipped agent=${ctx.agentId ?? "?"} reason=${res.metadata.reason ?? "unknown"}`,
+      );
+      return undefined;
+    }
+    if (!res.systemPromptAppend) return undefined;
+
+    // We append to the cacheable system context block. This matches the
+    // PluginHookBeforePromptBuildResult contract and keeps tokens cacheable
+    // across turns (see hook-before-agent-start.types.ts: appendSystemContext
+    // is intentionally append, not per-turn prepend).
+    return { appendSystemContext: res.systemPromptAppend };
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Plugin registration
+// ---------------------------------------------------------------------------
+
+export function registerContextPreload(api: OpenClawPluginApi): void {
+  const resolveCfg = (): ContextPreloadConfig => {
+    const raw = api.pluginConfig ?? {};
+    return resolveConfig(raw as Record<string, unknown>);
+  };
+
+  api.on("before_prompt_build", createBeforePromptBuildHandler(resolveCfg, api.logger));
+}

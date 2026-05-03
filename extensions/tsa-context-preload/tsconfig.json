@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "ignoreDeprecations": "5.0",
+    "baseUrl": ".",
+    "paths": {
+      "openclaw/plugin-sdk": [
+        "../../.artifacts/build-all-cache/build_plugin-sdk_dts/outputs/dist/plugin-sdk/src/plugin-sdk/index.d.ts"
+      ],
+      "openclaw/plugin-sdk/*": [
+        "../../.artifacts/build-all-cache/build_plugin-sdk_dts/outputs/dist/plugin-sdk/src/plugin-sdk/*.d.ts"
+      ]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
+}

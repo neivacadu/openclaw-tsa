@@ -333,6 +333,14 @@ function isPureBillingSummary(err: unknown): boolean {
   );
 }
 
+function isPureTimeoutSummary(err: unknown): boolean {
+  return (
+    isFallbackSummaryError(err) &&
+    err.attempts.length > 0 &&
+    err.attempts.every((attempt) => attempt.reason === "timeout")
+  );
+}
+
 function isToolResultTurnMismatchError(message: string): boolean {
   const lower = normalizeLowercaseStringOrEmpty(message);
   return (
@@ -1538,6 +1546,7 @@ export async function runAgentTurnWithFallback(params: {
       const isBilling = isFallbackSummaryError(err)
         ? isPureBillingSummary(err)
         : isBillingErrorMessage(message);
+      const isTimeout = !isBilling && isFallbackSummaryError(err) && isPureTimeoutSummary(err);
       const isContextOverflow = !isBilling && isLikelyContextOverflowError(message);
       const isCompactionFailure = !isBilling && isCompactionFailureError(message);
       const isSessionCorruption = /function call turn comes immediately after/i.test(message);
@@ -1697,6 +1706,7 @@ export async function runAgentTurnWithFallback(params: {
         !rateLimitOrOverloadedCopy &&
         !isContextOverflow &&
         !isRoleOrderingError &&
+        !isTimeout &&
         !shouldSurfaceToControlUi
           ? buildExternalRunFailureReply(message, {
               includeDetails: isVerboseFailureDetailEnabled(params.resolvedVerboseLevel),
@@ -1712,9 +1722,11 @@ export async function runAgentTurnWithFallback(params: {
               ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
               : isRoleOrderingError
                 ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
-                : shouldSurfaceToControlUi
-                  ? `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: openclaw logs --follow`
-                  : (externalRunFailureReply?.text ?? GENERIC_EXTERNAL_RUN_FAILURE_TEXT);
+                : isTimeout
+                  ? "⏱ Task timed out (>10min) and was interrupted. Try breaking it into smaller parts or disabling long thinking."
+                  : shouldSurfaceToControlUi
+                    ? `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: openclaw logs --follow`
+                    : (externalRunFailureReply?.text ?? GENERIC_EXTERNAL_RUN_FAILURE_TEXT);
       const userVisibleFallbackText = resolveExternalRunFailureTextForConversation({
         text: fallbackText,
         sessionCtx: params.sessionCtx,
