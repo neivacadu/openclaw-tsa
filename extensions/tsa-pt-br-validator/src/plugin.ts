@@ -33,7 +33,7 @@ interface PluginConfig {
 }
 
 const DEFAULT_PLUGIN_CONFIG: PluginConfig = {
-  enabled: false,
+  enabled: true,
   ...DEFAULT_VALIDATOR_CONFIG,
 };
 

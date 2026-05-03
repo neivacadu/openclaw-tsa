@@ -1,0 +1,69 @@
+{
+  "id": "tsa-budget-gate",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "tier": {
+        "type": "string",
+        "enum": ["lab", "v1", "pro", "business"],
+        "default": "lab"
+      },
+      "maxPerTurn": {
+        "type": ["integer", "null"],
+        "default": 50000
+      },
+      "maxPerMonth": {
+        "type": ["integer", "null"],
+        "default": null
+      },
+      "warnAt": {
+        "type": "number",
+        "default": 0.8,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "monitorOnly": {
+        "type": "boolean",
+        "default": true
+      },
+      "telegramAlerts": {
+        "type": "boolean",
+        "default": true
+      },
+      "postgresUrl": {
+        "type": "string",
+        "default": "postgres://tsa:tsa@localhost:5432/tsa_ace"
+      },
+      "telegramBotToken": {
+        "type": ["string", "null"],
+        "default": null
+      },
+      "telegramAdminChatId": {
+        "type": ["string", "null"],
+        "default": null
+      },
+      "telegramClientChatId": {
+        "type": ["string", "null"],
+        "default": null
+      },
+      "preciseTokenizer": {
+        "type": "boolean",
+        "default": false
+      },
+      "fastPathBusiness": {
+        "type": "boolean",
+        "default": true
+      },
+      "tiers": {
+        "type": "object",
+        "default": {
+          "lab": { "maxPerTurn": 50000, "maxPerMonth": null, "warnAt": 0.8 },
+          "v1": { "maxPerTurn": 5000, "maxPerMonth": 10000, "warnAt": 0.8 },
+          "pro": { "maxPerTurn": 20000, "maxPerMonth": 100000, "warnAt": 0.8 },
+          "business": { "maxPerTurn": null, "maxPerMonth": null, "warnAt": null }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "tsa-context-preload",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": { "type": "boolean" },
+      "memoryDaysBack": { "type": "integer", "minimum": 0, "maximum": 30 },
+      "artifactsHoursBack": { "type": "integer", "minimum": 0, "maximum": 720 },
+      "lastSessionTurns": { "type": "integer", "minimum": 0, "maximum": 200 },
+      "maxTokens": { "type": "integer", "minimum": 100, "maximum": 50000 },
+      "memoryDir": { "type": "string" },
+      "artifactsDirs": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "artifactExtensions": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "publicUrlPrefix": { "type": "string" },
+      "publicUrlBasePath": { "type": "string" },
+      "sessionsDir": { "type": "string" },
+      "agentsToInject": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  }
+}
